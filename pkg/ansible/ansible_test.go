@@ -1,6 +1,7 @@
 package ansible
 
 import (
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 	"testing"
 
@@ -21,14 +22,8 @@ func TestFind(t *testing.T) {
 		{Path: testDataDir + "/vars/vars.yml", Variable: "test_var", Value: yaml.Node{Value: "value"}},
 	}
 	results, err := Find(testDataDir, vaultPassword, "test_var")
-	assert.NoError(t, err)
-	assert.Len(t, results, len(want))
 
-	for i, r := range results {
-		assert.Equal(t, want[i].Path, r.Path)
-		assert.Equal(t, want[i].Variable, r.Variable)
-		assert.Equal(t, want[i].Value.Value, r.Value.Value)
-	}
+	assertValuesMatch(t, want, results, err)
 }
 
 func TestFind_error(t *testing.T) {
@@ -59,16 +54,29 @@ func TestFindRegex(t *testing.T) {
 		{Path: testDataDir + "/vars/vars.yml", Variable: "test_var", Value: yaml.Node{Value: "value"}},
 	}
 	results, err := FindRegex(testDataDir, vaultPassword, "test_.*")
-	assert.NoError(t, err)
 
-	for i, r := range results {
-		assert.Equal(t, want[i].Path, r.Path)
-		assert.Equal(t, want[i].Variable, r.Variable)
-		assert.Equal(t, want[i].Value.Value, r.Value.Value)
-	}
+	assertValuesMatch(t, want, results, err)
 }
 
 func TestFindRegex_badRegex(t *testing.T) {
 	_, err := FindRegex(testDataDir, vaultPassword, "*")
 	assert.Error(t, err)
+}
+
+func assertValuesMatch(t *testing.T, want []Result, results []Result, err error) {
+	assert.NoError(t, err)
+	assert.Len(t, results, len(want))
+
+	for _, result := range results {
+		matched := false
+		for i, wanted := range want {
+			if result.Path == wanted.Path && result.Variable == wanted.Variable && result.Value.Value == wanted.Value.Value {
+				matched = true
+				want = slices.Delete(want, i, i+1)
+				break
+			}
+		}
+		assert.Truef(t, matched, "result %v not found in want", result)
+	}
+	assert.Emptyf(t, want, "not all results found in want: %v", want)
 }
