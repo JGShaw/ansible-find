@@ -53,7 +53,7 @@ func TestFindRegex(t *testing.T) {
 		{Path: testDataDir + "/inventories/host_vars/vault.yaml", Variable: "test_var", Value: yaml.Node{Value: "value"}},
 		{Path: testDataDir + "/vars/vars.yml", Variable: "test_var", Value: yaml.Node{Value: "value"}},
 	}
-	results, err := FindRegex(testDataDir, vaultPassword, "test_.*")
+	results, err := FindRegex(testDataDir, vaultPassword, "^test_.*")
 
 	assertValuesMatch(t, want, results, err)
 }
